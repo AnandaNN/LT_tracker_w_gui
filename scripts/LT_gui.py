@@ -5,7 +5,7 @@ import rospy
 from PIL import Image
 from PIL import ImageTk
 import cv2
-from geometry_msgs.msg import Pose, Twist
+from geometry_msgs.msg import Pose, Twist, Point
 from sensor_msgs.msg import Image as SensorImage
 from std_msgs.msg import Bool, Empty, UInt8
 import base64
@@ -63,6 +63,7 @@ class DroneGUI:
         self.image_label = Label(text = "", height = 480, width = 640)
         self.image_label.grid(row = 3, column = 6,  columnspan = 15, rowspan = 15)
    
+        self.frame_num = 0
 
         ## Initialising variables for selecting target
         self.imgClick = False
@@ -83,13 +84,16 @@ class DroneGUI:
   
         self.battery_sub = rospy.Subscriber('/dji_sdk/battery_state', UInt8, self.update_battery_label)
 
-        self.target_sub = rospy.Subscriber("target", Pose, self.draw_target)
+        self.target_sub = rospy.Subscriber("/target", Point, self.draw_target)
 
         self.image_sub = rospy.Subscriber('/webcam/image_raw', SensorImage, self.image_subscriber_callback)
 
-        self.gui_target_pub = rospy.Publisher('gui_target', Pose , queue_size=10)
+        self.gui_target_pub = rospy.Publisher('/gui_target', Point , queue_size=1)
+        
+        self.frame_pub = rospy.Publisher('/frame_num', UInt8 , queue_size=1)
 
-        rospy.init_node('gui', anonymous=True)
+        rospy.init_node('gui', anonymous=False)
+
         self.rate = rospy.Rate(10)
         rospy.loginfo("GUI initialised")
 
@@ -103,7 +107,7 @@ class DroneGUI:
         # print("got image")
 
     def draw_target(self,data):
-        self.circle_center = [data.position.x, data.position.y]
+        self.circle_center = [data.x, data.y]
 
     def update_image(self):
         ## Updating the image from the 'drone_cam_sub.py', if it's new. The update is automatic with a frequency 20 Hz (50 ms)
@@ -114,6 +118,15 @@ class DroneGUI:
                 self.image_label.pic = self.imgtk
                 self.image_label.configure(image=self.imgtk)
                 self.prev_img = self.img
+                #nn = UInt8()
+                #nn = self.frame_num
+                #while self.frame_pub.get_num_connections() < 1:
+                #    rospy.loginfo("%d",self.frame_pub.get_num_connections())
+                #    rospy.Rate(10).sleep()
+                #rospy.loginfo("Done: %d",self.frame_pub.get_num_connections())
+                #self.frame_pub.publish(nn)
+                #self.frame_num += 1
+                # rospy.loginfo("%d", nn)
         except:
             print("Image not updated")
         self.enable_video_stream = self.image_label.after(int(1000/frequency), self.update_image)
@@ -160,11 +173,13 @@ class DroneGUI:
     def publish_pos(self):
         #publishing the position of the target position in pixels
         if not rospy.is_shutdown():
-            p = Pose()
-            p.position.x = pos_x
-            p.position.y = pos_y   
+            p = Point()
+            p.x = pos_x
+            p.y = pos_y
+            p.z = 0
             self.gui_target_pub.publish(p)
             self.rate.sleep()
+            rospy.loginfo("New Gui target published (%d, %d)", pos_x, pos_y)
 
 
 

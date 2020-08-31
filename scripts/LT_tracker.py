@@ -4,7 +4,8 @@ import cv2 as cv2
 import math
 import roslib
 import rospy
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Point
+# from geometry_msgs.msg import Pose
 from std_msgs.msg  import Bool
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
@@ -43,9 +44,9 @@ class Target_tracker():
         self.keypoints_previous_frame = None
         self.descriptors_previous_frame = None
 
-        self.distance_to_wall = None
-        self.pix_distance = 0.0
-        self.pix_distance_prev = None
+        # self.distance_to_wall = None
+        # self.pix_distance = 0.0
+        # self.pix_distance_prev = None
 
         self.first_flag = True
 
@@ -55,13 +56,13 @@ class Target_tracker():
         self.distance_array = []
         
         # publisher
-        self.target_pub = rospy.Publisher('/target', Pose, queue_size=1)
-        self.distance_pub = rospy.Publisher('/distance', Pose, queue_size=1)
+        self.target_pub = rospy.Publisher('/target', Point, queue_size=1)
+        # self.distance_pub = rospy.Publisher('/distance', Pose, queue_size=1)
         self.target_tracking_enable = rospy.Publisher('/target_tracking_enable', Bool, queue_size= 1)
 
         # subscriber
         self.image_sub = rospy.Subscriber("/webcam/image_raw",Image,self.read_frame)
-        self.gui_target_sub = rospy.Subscriber("/gui_target", Pose, self.read_gui_target)
+        self.gui_target_sub = rospy.Subscriber("/gui_target", Point, self.read_gui_target)
         
 
         print('Target tracking initialised')
@@ -81,10 +82,10 @@ class Target_tracker():
 
     def read_gui_target(self, data):
         print("Target from GUI read")
-        if(self.new_target[0] == None):
-            self.new_target = (data.position.x, data.position.y)
-        if(self.previous_target[0] == None):
-            self.previous_target = (data.position.x, data.position.y)
+        #if(self.new_target[0] == None):
+        self.new_target = (data.x, data.y)
+        #if(self.previous_target[0] == None):
+        self.previous_target = (data.x, data.y)
 
     def find_matches(self):
         ## finds usable matches from previous and current frame, as well as update the csv file
@@ -123,9 +124,9 @@ class Target_tracker():
                 coordinates_best_matches_frame.append((x2, y2))
         self.matches_array.append(len(matches))
         self.matches_used_array.append(len(coordinates_best_matches_frame)) 
-        self.distance_array.append(self.distance_to_wall)
+        # self.distance_array.append(self.distance_to_wall)
 
-        np.savetxt(file_name, np.transpose([np.array(self.matches_array), np.array(self.matches_used_array), np.array(self.distance_array)]), delimiter=',',fmt="%s") 
+        # np.savetxt(file_name, np.transpose([np.array(self.matches_array), np.array(self.matches_used_array), np.array(self.distance_array)]), delimiter=',',fmt="%s") 
         self.keypoints_previous_frame = keypoints_frame
         self.descriptors_previous_frame = descriptors_frame
 
@@ -167,14 +168,14 @@ class Target_tracker():
     def publish_new_target(self):
         if self.new_target[0] != None:
             # print("sending target")
-            p = Pose()
-            p.position.x = float(self.new_target[0])
-            p.position.y = float(self.new_target[1])
-            p.position.z = 0
-            p.orientation.x = 0.0
-            p.orientation.x = 0.0
-            p.orientation.x = 0.0
-            p.orientation.w = 1.0
+            p = Point()
+            p.x = float(self.new_target[0])
+            p.y = float(self.new_target[1])
+            p.z = 0
+            #p.orientation.x = 0.0
+            #p.orientation.x = 0.0
+            #p.orientation.x = 0.0
+            #p.orientation.w = 1.0
             self.target_pub.publish(p)
 
     def run(self):
