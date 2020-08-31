@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+
+    <node pkg="LT_tracker_w_gui" type="drone_cam_sub.py" name="drone_cam_sub" output="screen" />
+    
+    <node pkg="LT_tracker_w_gui" type="record_video.py" name="record_video" output="screen" />
+    
+    <node pkg="LT_tracker_w_gui" type="target_tracking8.py" name="target_tracking8" output="screen" />
+    
+    <node pkg="LT_tracker_w_gui" type="gui6w_dronepublishers.py" name="gui6w_dronepublishers" output="screen" />
+    
+    <node pkg="LT_tracker_w_gui" type="move_to_target.py" name="move_to_target" output="screen" />
+
+</launch>

@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+    
+    <include file="$(find video_stream_opencv)/launch/webcam.launch" />
+    
+    <!-- <node pkg="LT_tracker_w_gui" type="LT_gui.py" name="LT_gui" output="screen" /> -->
+
+    <node pkg="LT_tracker_w_gui" type="LT_tracker.py" name="LT_tracker" output="screen" />
+
+</launch>
