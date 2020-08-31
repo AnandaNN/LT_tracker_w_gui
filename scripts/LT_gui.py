@@ -86,7 +86,8 @@ class DroneGUI:
 
         self.target_sub = rospy.Subscriber("/target", Point, self.draw_target)
 
-        self.image_sub = rospy.Subscriber('/webcam/image_raw', SensorImage, self.image_subscriber_callback)
+        #self.image_sub = rospy.Subscriber('/webcam/image_raw', SensorImage, self.image_subscriber_callback)
+        self.image_sub = rospy.Subscriber('/camera/image_decompressed', SensorImage, self.image_subscriber_callback)
 
         self.gui_target_pub = rospy.Publisher('/gui_target', Point , queue_size=1)
         
