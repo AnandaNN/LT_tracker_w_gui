@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+
+<launch>
+
+    <node pkg="LT_tracker_w_gui" type="LT_gui.py" name="LT_gui" output="screen" />
+
+</launch>

@@ -41,7 +41,7 @@ class DroneGUI:
         master.title("Drone GUI")
         
         ## Initialising framework of GUI
-        frame1 = Frame(master, height = 480, width = 200, bd = 2, relief = "sunken")
+        frame1 = Frame(master, height = 480, width = 150, bd = 2, relief = "sunken")
         frame1.grid(row = 3, column = 3, rowspan = 15)
         frame1.grid_propagate(False)
         
@@ -60,7 +60,8 @@ class DroneGUI:
         self.close_button = Button(master, text="Close", command=master.quit)
         self.close_button.grid(row = 1, column = 20)
 
-        self.image_label = Label(text = "", height = 480, width = 640)
+        # self.image_label = Label(text = "", height = 480, width = 640)
+        self.image_label = Label(text = "", height = 720, width = 1280)
         self.image_label.grid(row = 3, column = 6,  columnspan = 15, rowspan = 15)
    
         self.frame_num = 0
@@ -187,7 +188,7 @@ class DroneGUI:
 ## sizing the gui window and initialising
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 root = Tk()
-root.geometry('1200x600')
+root.geometry('1600x850')
 
 gui = DroneGUI(root)
 gui.update_image()
