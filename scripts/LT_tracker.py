@@ -4,7 +4,7 @@ import cv2 as cv2
 import math
 import roslib
 import rospy
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point, Twist
 # from geometry_msgs.msg import Pose
 from std_msgs.msg  import Bool
 from sensor_msgs.msg import Image
@@ -19,13 +19,14 @@ The file_name is the output of the .csv file containing the total number of math
 as well as the estimated distance to the wall 
 """
 
-C_MID = (320, 240)
+#C_MID = (320, 240)
+C_MID = (640, 360)
 
 file_name = 'test.csv'
 
 class Target_tracker():
     def __init__(self):
-        self.loop_rate = rospy.Rate(10)
+        self.loop_rate = rospy.Rate(20)
 
         #for converting to openCV
         self.bridge = CvBridge()
@@ -44,7 +45,10 @@ class Target_tracker():
         self.keypoints_previous_frame = None
         self.descriptors_previous_frame = None
 
-        # self.distance_to_wall = None
+        self.focal_length_x = 550
+        self.focal_length_y = 550
+        self.distance_to_wall = None
+        self.distance_error = Point()
         # self.pix_distance = 0.0
         # self.pix_distance_prev = None
 
@@ -59,10 +63,12 @@ class Target_tracker():
         self.target_pub = rospy.Publisher('/target', Point, queue_size=1)
         # self.distance_pub = rospy.Publisher('/distance', Pose, queue_size=1)
         self.target_tracking_enable = rospy.Publisher('/target_tracking_enable', Bool, queue_size= 1)
+        self.distance_error_pub = rospy.Publisher('/distance_error', Point, queue_size=1)
 
         # subscriber
         self.image_sub = rospy.Subscriber("/webcam/image_raw",Image,self.read_frame)
         self.gui_target_sub = rospy.Subscriber("/gui_target", Point, self.read_gui_target)
+        self.distance_sub = rospy.Subscriber("/dtu_controller/current_frame_pose", Twist, self.update_distance)
         
 
         print('Target tracking initialised')
@@ -165,6 +171,12 @@ class Target_tracker():
         
         self.previous_target = self.new_target
 
+    def calculate_error(self):
+        if self.distance_to_wall != None and self.new_target[0] != None:
+            self.distance_error.x = self.distance_to_wall
+            self.distance_error.y = -(self.new_target[0] - C_MID[0])/self.focal_length_x * self.distance_to_wall
+            self.distance_error.z = -(self.new_target[1] - C_MID[1])/self.focal_length_y * self.distance_to_wall
+
     def publish_new_target(self):
         if self.new_target[0] != None:
             # print("sending target")
@@ -177,6 +189,11 @@ class Target_tracker():
             #p.orientation.x = 0.0
             #p.orientation.w = 1.0
             self.target_pub.publish(p)
+        if self.distance_to_wall != None:
+            self.distance_error_pub.publish(self.distance_error)
+
+    def update_distance(self, data):
+        self.distance_to_wall = data.linear.x
 
     def run(self):
         while not rospy.is_shutdown():
@@ -189,6 +206,7 @@ class Target_tracker():
 
                     self.previous_frame = self.frame[:]
                     #print(self.frame.shape)
+                    self.calculate_error()
 
                 self.loop_rate.sleep()
 
