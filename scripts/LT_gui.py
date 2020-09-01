@@ -7,6 +7,7 @@ from PIL import ImageTk
 import cv2
 from geometry_msgs.msg import Pose, Twist, Point
 from sensor_msgs.msg import Image as SensorImage
+from sensor_msgs.msg import BatteryState
 from std_msgs.msg import Bool, Empty, UInt8
 import base64
 from cv_bridge import CvBridge, CvBridgeError
@@ -83,7 +84,7 @@ class DroneGUI:
         ## Initialising of publishers and subscribers        
         self.distance_sub = rospy.Subscriber('/dtu_controller/current_frame_pose', Twist, self.update_distance_label)
   
-        self.battery_sub = rospy.Subscriber('/dji_sdk/battery_state', UInt8, self.update_battery_label)
+        self.battery_sub = rospy.Subscriber('/dji_sdk/battery_state', BatteryState, self.update_battery_label)
 
         self.target_sub = rospy.Subscriber("/target", Point, self.draw_target)
 
@@ -167,7 +168,7 @@ class DroneGUI:
         #self.auto_flying = True
         
     def update_distance_label(self, data):
-        self.distance_label.configure( text = 'Distance: {:02.2f} m'.format(-data.linear.x) )
+        self.distance_label.configure( text = 'Distance: {:02.2f} m'.format(data.linear.x) )
 
     def update_battery_label(self, data):
         self.battery_label.configure( text = 'Battery level: {} %'.format(data.percentage))
