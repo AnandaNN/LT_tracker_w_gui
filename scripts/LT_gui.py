@@ -49,11 +49,19 @@ class DroneGUI:
         self.select_target_button = Button(master, text="Select target", command=self.select_target)
         self.select_target_button.grid(row = 4, column = 3)
 
-        self.distance_label = Label(master, text = "Distance: NA")
-        self.distance_label.grid(row = 6, column = 3)
-
         self.battery_label = Label(master, text = "Battery level: NA")
-        self.battery_label.grid(row = 8, column = 3)
+        self.battery_label.grid(row = 6, column = 3)
+
+        self.x_distance_label = Label(master, text = "X Distance: NA")
+        self.x_distance_label.grid(row = 8, column = 3)
+
+        self.y_distance_label = Label(master, text = "Y Distance: NA")
+        self.y_distance_label.grid(row = 10, column = 3)
+
+        self.z_distance_label = Label(master, text = "Z Distance: NA")
+        self.z_distance_label.grid(row = 12, column = 3)
+
+        
 
         header_label = Label(master, text="Choosing target for drone")
         header_label.grid(row = 1, column = 8)
@@ -82,11 +90,13 @@ class DroneGUI:
         self.abort_bool = False
 
         ## Initialising of publishers and subscribers        
-        self.distance_sub = rospy.Subscriber('/dtu_controller/current_frame_pose', Twist, self.update_distance_label)
+        # self.distance_sub = rospy.Subscriber('/dtu_controller/current_frame_pose', Twist, self.update_distance_label)
   
         self.battery_sub = rospy.Subscriber('/dji_sdk/battery_state', BatteryState, self.update_battery_label)
 
         self.target_sub = rospy.Subscriber("/target", Point, self.draw_target)
+
+        self.distance_error_sub = rospy.Subscriber("/distance_error", Point, self.update_distance_error)
 
         #self.image_sub = rospy.Subscriber('/webcam/image_raw', SensorImage, self.image_subscriber_callback)
         self.image_sub = rospy.Subscriber('/camera/image_decompressed', SensorImage, self.image_subscriber_callback)
@@ -168,10 +178,15 @@ class DroneGUI:
         #self.auto_flying = True
         
     def update_distance_label(self, data):
-        self.distance_label.configure( text = 'Distance: {:02.2f} m'.format(data.linear.x) )
+        self.x_distance_label.configure( text = 'Distance:\n{:02.2f} m'.format(data.linear.x) )
+
+    def update_distance_error(self, data):
+        self.x_distance_label.configure( text = 'X Distance:\n{:02.2f} m'.format(data.x))
+        self.y_distance_label.configure( text = 'Y Distance:\n{:02.2f} m'.format(data.y))
+        self.z_distance_label.configure( text = 'Z Distance:\n{:02.2f} m'.format(data.z))
 
     def update_battery_label(self, data):
-        self.battery_label.configure( text = 'Battery level: {} %'.format(data.percentage))
+        self.battery_label.configure( text = 'Battery level:\n{} %'.format(data.percentage))
 
     def publish_pos(self):
         #publishing the position of the target position in pixels
