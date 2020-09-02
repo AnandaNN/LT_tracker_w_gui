@@ -45,8 +45,8 @@ class Target_tracker():
         self.keypoints_previous_frame = None
         self.descriptors_previous_frame = None
 
-        self.focal_length_x = 550
-        self.focal_length_y = 550
+        self.focal_length_x = 968
+        self.focal_length_y = 967
         self.distance_to_wall = None
         self.distance_error = Point()
         # self.pix_distance = 0.0
@@ -208,7 +208,13 @@ class Target_tracker():
                     #print(self.frame.shape)
                     self.calculate_error()
 
-                self.loop_rate.sleep()
+                # self.loop_rate.sleep()
+            else:
+                self.target_tracking_enable.publish(False)
+                # rospy.Rate(30).sleep()
+
+            rospy.Rate(30).sleep()
+
 
 if __name__ == '__main__':
     rospy.init_node("target_node", anonymous=True)
