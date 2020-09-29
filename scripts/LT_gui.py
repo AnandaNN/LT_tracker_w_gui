@@ -70,7 +70,8 @@ class DroneGUI:
         self.close_button.grid(row = 1, column = 20)
 
         # self.image_label = Label(text = "", height = 480, width = 640)
-        self.image_label = Label(text = "", height = 720, width = 1280)
+        # self.image_label = Label(text = "", height = 720, width = 1280)
+        self.image_label = Label(text = "", height = 448, width = 800)
         self.image_label.grid(row = 3, column = 6,  columnspan = 15, rowspan = 15)
    
         self.frame_num = 0
@@ -98,8 +99,9 @@ class DroneGUI:
 
         self.distance_error_sub = rospy.Subscriber("/distance_error", Point, self.update_distance_error)
 
-        #self.image_sub = rospy.Subscriber('/webcam/image_raw', SensorImage, self.image_subscriber_callback)
-        self.image_sub = rospy.Subscriber('/camera/image_decompressed', SensorImage, self.image_subscriber_callback)
+        self.image_sub = rospy.Subscriber('/webcam/image_raw', SensorImage, self.image_subscriber_callback)
+        self.image_sub = rospy.Subscriber('/camera/image_raw', SensorImage, self.image_subscriber_callback)
+        #self.image_sub = rospy.Subscriber('/camera/image_decompressed', SensorImage, self.image_subscriber_callback)
 
         self.gui_target_pub = rospy.Publisher('/gui_target', Point , queue_size=1)
         

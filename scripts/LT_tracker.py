@@ -20,13 +20,14 @@ as well as the estimated distance to the wall
 """
 
 #C_MID = (320, 240)
-C_MID = (640, 360)
+#C_MID = (640, 360)
+C_MID = (400, 224)
 
 file_name = 'test.csv'
 
 class Target_tracker():
     def __init__(self):
-        self.loop_rate = rospy.Rate(20)
+        #self.loop_rate = rospy.Rate(20)
 
         #for converting to openCV
         self.bridge = CvBridge()
@@ -66,7 +67,7 @@ class Target_tracker():
         self.distance_error_pub = rospy.Publisher('/distance_error', Point, queue_size=1)
 
         # subscriber
-        self.image_sub = rospy.Subscriber("/webcam/image_raw",Image,self.read_frame)
+        self.image_sub = rospy.Subscriber("/camera/image_raw",Image,self.read_frame)
         self.gui_target_sub = rospy.Subscriber("/gui_target", Point, self.read_gui_target)
         self.distance_sub = rospy.Subscriber("/dtu_controller/current_frame_pose", Twist, self.update_distance)
         
