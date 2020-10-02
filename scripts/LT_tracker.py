@@ -20,8 +20,8 @@ as well as the estimated distance to the wall
 """
 
 #C_MID = (320, 240)
-#C_MID = (640, 360)
-C_MID = (400, 224)
+C_MID = (640, 360)
+#C_MID = (400, 224)
 
 file_name = 'test.csv'
 
@@ -42,12 +42,14 @@ class Target_tracker():
 
         self.no_previous_frame = True
 
+        self.no_change = 0
+
         #for the feature detector
         self.keypoints_previous_frame = None
         self.descriptors_previous_frame = None
 
-        self.focal_length_x = 968
-        self.focal_length_y = 967
+        self.focal_length_x = 1068
+        self.focal_length_y = 1072
         self.distance_to_wall = None
         self.distance_error = Point()
         # self.pix_distance = 0.0
@@ -63,7 +65,7 @@ class Target_tracker():
         # publisher
         self.target_pub = rospy.Publisher('/target', Point, queue_size=1)
         # self.distance_pub = rospy.Publisher('/distance', Pose, queue_size=1)
-        self.target_tracking_enable = rospy.Publisher('/target_tracking_enable', Bool, queue_size= 1)
+        # self.target_tracking_enable = rospy.Publisher('/target_tracking_enable', Bool, queue_size= 1)
         self.distance_error_pub = rospy.Publisher('/distance_error', Point, queue_size=1)
 
         # subscriber
@@ -166,9 +168,11 @@ class Target_tracker():
                     
         if len(new_target_y) != 0 and len(new_target_x) != 0 :
             self.new_target = (sum(new_target_x)/len(new_target_x), sum(new_target_y)/len(new_target_y))
+            self.no_change = 1
         else:
             self.new_target = self.previous_target
-            print("old value used")
+            # print("old value used")
+            self.no_change = 0
         
         self.previous_target = self.new_target
 
@@ -184,7 +188,7 @@ class Target_tracker():
             p = Point()
             p.x = float(self.new_target[0])
             p.y = float(self.new_target[1])
-            p.z = 0
+            p.z = self.no_change
             #p.orientation.x = 0.0
             #p.orientation.x = 0.0
             #p.orientation.x = 0.0
@@ -200,18 +204,19 @@ class Target_tracker():
         while not rospy.is_shutdown():
 
             if self.new_target[0] != None:
-                self.target_tracking_enable.publish(True)
+                # self.target_tracking_enable.publish(True)
                 if(not self.first_flag):
                     self.find_new_target()
+                    self.calculate_error()
                     self.publish_new_target()
 
                     self.previous_frame = self.frame[:]
                     #print(self.frame.shape)
-                    self.calculate_error()
+                    
 
                 # self.loop_rate.sleep()
-            else:
-                self.target_tracking_enable.publish(False)
+            # else:
+                # self.target_tracking_enable.publish(False)
                 # rospy.Rate(30).sleep()
 
             rospy.Rate(30).sleep()
