@@ -51,6 +51,7 @@ class Target_tracker():
         self.focal_length_x = 1068
         self.focal_length_y = 1072
         self.distance_to_wall = None
+        self.wall_angle = None
         self.distance_error = Point()
         # self.pix_distance = 0.0
         # self.pix_distance_prev = None
@@ -179,7 +180,8 @@ class Target_tracker():
     def calculate_error(self):
         if self.distance_to_wall != None and self.new_target[0] != None:
             self.distance_error.x = self.distance_to_wall
-            self.distance_error.y = -(self.new_target[0] - C_MID[0])/self.focal_length_x * self.distance_to_wall
+            y_offset = (C_MID[0]) * np.sin(self.wall_angle)
+            self.distance_error.y = -((self.new_target[0]-y_offset) - C_MID[0])/self.focal_length_x * self.distance_to_wall
             self.distance_error.z = -(self.new_target[1] - C_MID[1])/self.focal_length_y * self.distance_to_wall
 
     def publish_new_target(self):
@@ -199,6 +201,7 @@ class Target_tracker():
 
     def update_distance(self, data):
         self.distance_to_wall = data.linear.x
+        self.wall_angle = data.angular.z
 
     def run(self):
         while not rospy.is_shutdown():
