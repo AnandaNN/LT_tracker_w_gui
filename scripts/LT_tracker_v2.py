@@ -70,11 +70,13 @@ class Target_tracker():
         self.distance_error_pub = rospy.Publisher('/distance_error', Point, queue_size=1)
 
         # subscriber
-        #self.image_sub = rospy.Subscriber("/camera/image_decompressed",Image,self.read_frame)
-        self.image_sub = rospy.Subscriber("/usb_cam/image_raw",Image,self.read_frame)
+        self.image_sub = rospy.Subscriber("/camera/image_decompressed",Image,self.read_frame)
+        #self.image_sub = rospy.Subscriber("/usb_cam/image_raw",Image,self.read_frame)
         self.gui_target_sub = rospy.Subscriber("/gui_target", Point, self.read_gui_target)
         self.distance_sub = rospy.Subscriber("/dtu_controller/current_frame_pose", Twist, self.update_distance)
         
+        self.tracker = cv2.TrackerCSRT_create()
+        self.initBB = None
 
         print('Target tracking initialised')
 
@@ -97,6 +99,9 @@ class Target_tracker():
         self.new_target = (data.x, data.y)
         #if(self.previous_target[0] == None):
         self.previous_target = (data.x, data.y)
+        self.initBB = (int(data.x-30), int(data.y-30), 60, 60)
+        print(self.initBB)
+        self.tracker.init(self.frame, self.initBB)
 
     def find_matches(self):
         ## finds usable matches from previous and current frame, as well as update the csv file
@@ -145,6 +150,21 @@ class Target_tracker():
 
     def find_new_target(self):
         ## computes current target point based of coordinates of matches 
+
+        if self.initBB != None:
+            (success, box) = self.tracker.update(self.frame)
+
+            # check to see if the tracking was a success
+            if success:
+                print(box)
+                (x, y, w, h) = [int(v) for v in box]
+                self.new_target = (x+w/2, y+h/2)
+                self.no_change = 1
+            else:
+                self.new_target = self.previous_target
+                self.no_change = 0
+
+        return 
 
         (coordinates_best_matches_previous_frame, coordinates_best_matches_frame) = self.find_matches()
 
