@@ -3,6 +3,6 @@
 <launch>
 
 	<node pkg="image_transport" type="republish" name="decompress" args="compressed in:=usb_cam/image_raw out:=camera/image_decompressed" output="screen" />
-    <node pkg="LT_tracker_w_gui" type="LT_gui.py" name="LT_gui" output="screen" />
+    <node pkg="LT_tracker_w_gui" type="LT_gui_v2.py" name="LT_gui" output="screen" />
 
 </launch>

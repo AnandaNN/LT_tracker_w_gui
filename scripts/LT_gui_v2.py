@@ -1,40 +1,19 @@
 #!/usr/bin/env python2
+
+# GUI related
 from Tkinter import Tk, Label, Button, Frame, Entry
-import tkMessageBox
-import rospy
 from PIL import Image
 from PIL import ImageTk
+
+# ROS Related
+import rospy
+import numpy as np
 import cv2
-from geometry_msgs.msg import Pose, Twist, Point
+from geometry_msgs.msg import Twist, Point
 from sensor_msgs.msg import Image as SensorImage
 from sensor_msgs.msg import BatteryState
-from std_msgs.msg import Bool, Empty, UInt8
-import base64
+from std_msgs.msg import UInt8
 from cv_bridge import CvBridge, CvBridgeError
-import numpy
-from PIL import ImageFile
-import os
-import numpy as np
-
-"""
-Code for the gui, which enables the user to view the image from the drone, control the drone, 
-and allows the user to select a target point on the live image. 
-"""
-
-pos_x = -1
-pos_y = -1
-
-def save_pos(event): 
-    ## updating the position of the target point from position of mouse click on image 
-    global pos_x
-    global pos_y
-    pos_x = event.x
-    pos_y = event.y
-
-
-def display_message_box(message):
-    return tkMessageBox.askyesno("Information", message)
-    
 
 class DroneGUI:
     def __init__(self, master):
@@ -42,7 +21,7 @@ class DroneGUI:
         master.title("Drone GUI")
         
         ## Initialising framework of GUI
-        frame1 = Frame(master, height = 250, width = 210, bd = 2, relief = "sunken")
+        frame1 = Frame(master, height = 350, width = 210, bd = 2, relief = "sunken")
         frame1.grid(row = 10, column = 2, rowspan = 6)
         frame1.grid_propagate(False)
         
@@ -74,21 +53,22 @@ class DroneGUI:
         self.z_distance_label = Label(master, text = "Z Distance: NA")
         self.z_distance_label.grid(row = 13, column = 2)
 
+        self.yaw_distance_label = Label(master, text = "Yaw angle: NA")
+        self.yaw_distance_label.grid(row = 14, column = 2)
+
         self.flight_status_label = Label(master, text = "Autonomous mode: 0")
-        self.flight_status_label.grid(row = 14, column = 2)
+        self.flight_status_label.grid(row = 15, column = 2)
 
         header_label = Label(master, text="Choosing target for drone")
         header_label.grid(row = 1, column = 5)
 
         self.bb_data = (None, None, None, None)
 
-        # self.image_label = Label(text = "", height = 480, width = 640)
         self.image_label = Label(text = "", height = 720, width = 1280)
+        # self.image_label = Label(text = "", height = 480, width = 640)
         # self.image_label = Label(text = "", height = 448, width = 800)
-        #self.image_label = Label(text = "", height = 1200, width = 1600)
+        # self.image_label = Label(text = "", height = 1200, width = 1600)
         self.image_label.grid(row = 3, column = 5,  columnspan = 15, rowspan = 15)
-   
-        self.frame_num = 0
 
         self.control_status = 0
         self.xTarget = 0
@@ -102,37 +82,31 @@ class DroneGUI:
         
         self.circle_center = [None, None]
 
-        ## Initialising variables for autonoumous flight
-        self.flying = False
-        self.auto_flying = False
-        self.abort_bool = False
+        self.pos_x = -1
+        self.pos_y = -1
 
-        ## Initialising of publishers and subscribers        
-        # self.distance_sub = rospy.Subscriber('/dtu_controller/current_frame_pose', Twist, self.update_distance_label)
-  
+        # Subscribers
         self.battery_sub = rospy.Subscriber('/dji_sdk/battery_state', BatteryState, self.update_battery_label)
-
         self.target_sub = rospy.Subscriber("/target", Twist, self.draw_target)
-
         self.distance_error_sub = rospy.Subscriber("/distance_error", Point, self.update_distance_error)
-
-        #self.image_sub = rospy.Subscriber('/webcam/image_raw', SensorImage, self.image_subscriber_callback)
-        #self.image_sub = rospy.Subscriber('/camera/image_raw', SensorImage, self.image_subscriber_callback)
+        self.distance_sub = rospy.Subscriber('/dtu_controller/current_frame_pose', Twist, self.update_distance_label)
         self.image_sub = rospy.Subscriber('/camera/image_decompressed', SensorImage, self.image_subscriber_callback)
 
+        # Publishers
         self.gui_target_pub = rospy.Publisher('/gui_target', Point , queue_size=1)
-        
         self.frame_pub = rospy.Publisher('/frame_num', UInt8 , queue_size=1)
-
         self.control_status_msg = rospy.Publisher('/target_tracking_msg', UInt8, queue_size= 1)
 
         rospy.init_node('gui', anonymous=False)
 
-        self.rate = rospy.Rate(30)
-        #self.control_loop = rospy.Rate(30, self.control_status_publish_callback)
         rospy.Timer(rospy.Duration(1.0/30.0), self.control_status_publish_callback)
 
         rospy.loginfo("GUI initialised")
+
+    def save_pos(self, event): 
+        ## updating the position of the target point from position of mouse click on image 
+        self.pos_x = event.x
+        self.pos_y = event.y
 
     def get_target_distance(self, entry):
         val = int(eval(self.e1.get()))
@@ -152,7 +126,6 @@ class DroneGUI:
         self.master.quit()
 
     def control_status_publish_callback(self, time_event):
-        # print("34")
         self.flight_status_label.configure( text = "Autonomous mode: {}".format(self.control_status))
         msg = UInt8()
         msg.data = self.control_status
@@ -175,20 +148,22 @@ class DroneGUI:
 
     def image_subscriber_callback(self, image):
         cv_image = CvBridge().imgmsg_to_cv2(image, "rgb8")
-        # cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
         if self.circle_center[0] != None:
             cv2.circle(cv_image, (int(self.circle_center[0]), int(self.circle_center[1])), 3, self.circ_color, 10)
-            cv2.rectangle(cv_image, (self.bb_data[0], self.bb_data[1]), (self.bb_data[0] + self.bb_data[2], self.bb_data[1] + self.bb_data[3]), self.circ_color, 2)
+            if self.bb_data[0] != None:
+                cv2.rectangle(cv_image, (self.bb_data[0], self.bb_data[1]), (self.bb_data[0] + self.bb_data[2], self.bb_data[1] + self.bb_data[3]), self.circ_color, 2)
         self.img = Image.fromarray(cv_image)
-        # print("got image")
 
     def draw_target(self,data):
         self.circle_center = [data.linear.x, data.linear.y]
-        self.bb_data = (int(data.linear.x - data.angular.x/2), int(data.linear.y - data.angular.y/2), int(data.angular.x), int(data.angular.y))
         if data.linear.z:
             self.circ_color = (0,255,0)
         else:
             self.circ_color = (255,0,0)
+        if data.angular.z:
+            self.bb_data = (int(data.linear.x - data.angular.x/2), int(data.linear.y - data.angular.y/2), int(data.angular.x), int(data.angular.y))
+        else:
+            self.bb_data = (None, None, None, None)
 
 
     def update_image(self):
@@ -200,15 +175,6 @@ class DroneGUI:
                 self.image_label.pic = self.imgtk
                 self.image_label.configure(image=self.imgtk)
                 self.prev_img = self.img
-                #nn = UInt8()
-                #nn = self.frame_num
-                #while self.frame_pub.get_num_connections() < 1:
-                #    rospy.loginfo("%d",self.frame_pub.get_num_connections())
-                #    rospy.Rate(10).sleep()
-                #rospy.loginfo("Done: %d",self.frame_pub.get_num_connections())
-                #self.frame_pub.publish(nn)
-                #self.frame_num += 1
-                # rospy.loginfo("%d", nn)
         except:
             print("Image not updated")
         self.enable_video_stream = self.image_label.after(int(1000/frequency), self.update_image)
@@ -238,19 +204,19 @@ class DroneGUI:
        
         rospy.loginfo("User selected target")
         self.imgClick = False
-        save_pos(event)
+        self.save_pos(event)
         self.publish_pos()
         self.update_image()
         self.select_target_button.configure(text="Select target")
         self.image_label.unbind("<Button-1>")
         self.image_label.configure(cursor="") 
-        #self.auto_flying = True
         
     def update_distance_label(self, data):
-        self.x_distance_label.configure( text = 'Distance:\n{:02.2f} m'.format(data.linear.x) )
+        self.x_distance_label.configure( text = 'X Distance:\n{:02.2f} m'.format(data.linear.x) )
+        self.yaw_distance_label.configure( text = 'Yaw angle:\n{:02.2f} deg'.format(data.angular.z * 180.0/np.pi) )
 
     def update_distance_error(self, data):
-        self.x_distance_label.configure( text = 'X Distance:\n{:02.2f} m'.format(data.x))
+        # self.x_distance_label.configure( text = 'X Distance:\n{:02.2f} m'.format(data.x))
         self.y_distance_label.configure( text = 'Y Distance:\n{:02.2f} m'.format(data.y))
         self.z_distance_label.configure( text = 'Z Distance:\n{:02.2f} m'.format(data.z))
 
@@ -261,17 +227,15 @@ class DroneGUI:
         #publishing the position of the target position in pixels
         if not rospy.is_shutdown():
             p = Point()
-            p.x = pos_x
-            p.y = pos_y
+            p.x = self.pos_x
+            p.y = self.pos_y
             p.z = 0
             self.gui_target_pub.publish(p)
-            self.rate.sleep()
-            rospy.loginfo("New Gui target published (%d, %d)", pos_x, pos_y)
+            rospy.loginfo("New Gui target published (%d, %d)", self.pos_x, self.pos_y)
 
 
 
 ## sizing the gui window and initialising
-ImageFile.LOAD_TRUNCATED_IMAGES = True
 root = Tk()
 root.geometry('1700x850')
 
@@ -286,4 +250,3 @@ for row in xrange(row_count):
     root.grid_rowconfigure(row, minsize=20)
 
 root.mainloop()
-

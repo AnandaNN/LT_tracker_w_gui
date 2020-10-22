@@ -12,7 +12,7 @@ from cv_bridge import CvBridge, CvBridgeError
 
 # Define middle and focals
 C_MID = (640, 360)
-FOCAL_LENGTH = (1068, 1072)
+FOCAL_LENGTH = (1068.0, 1072.0)
 
 # Define the target tracker class
 class Target_tracker():
@@ -98,7 +98,7 @@ class Target_tracker():
             
             p.angular.x = float(self.box_size[0]) # Send the current size of the bounding box
             p.angular.y = float(self.box_size[1]) # Send the current size of the bounding box
-            p.angular.z = 0
+            p.angular.z = 1 # Tell if bb is used
 
             self.target_pub.publish(p)
         

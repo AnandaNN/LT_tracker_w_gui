@@ -28,8 +28,8 @@ class Target_tracker():
         self.keypoints_previous_frame = None
         self.descriptors_previous_frame = None
 
-        self.focal_length_x = 1068
-        self.focal_length_y = 1072
+        self.focal_length_x = 1068.0
+        self.focal_length_y = 1072.0
         self.distance_to_wall = None
         self.wall_angle = None
         self.distance_error = Point()
@@ -41,12 +41,12 @@ class Target_tracker():
         self.matches_used_array = [] 
         
         # publisher
-        self.target_pub = rospy.Publisher('/target', Point, queue_size=1)
+        self.target_pub = rospy.Publisher('/target', Twist, queue_size=1)
         self.distance_error_pub = rospy.Publisher('/distance_error', Point, queue_size=1)
 
         # subscriber
-        # self.image_sub = rospy.Subscriber("/camera/image_decompressed",Image,self.read_frame)
-        self.image_sub = rospy.Subscriber("/usb_cam/image_raw",Image,self.read_frame)
+        self.image_sub = rospy.Subscriber("/camera/image_decompressed",Image,self.read_frame)
+        #self.image_sub = rospy.Subscriber("/usb_cam/image_raw",Image,self.read_frame)
         self.gui_target_sub = rospy.Subscriber("/gui_target", Point, self.read_gui_target)
         self.distance_sub = rospy.Subscriber("/dtu_controller/current_frame_pose", Twist, self.update_distance)
         
@@ -153,17 +153,35 @@ class Target_tracker():
             self.distance_error.y = -((self.new_target[0]-y_offset) - C_MID[0])/self.focal_length_x * self.distance_to_wall
             self.distance_error.z = -(self.new_target[1] - C_MID[1])/self.focal_length_y * self.distance_to_wall
 
+    # Publish the target for the GUI to read for visualization
     def publish_new_target(self):
         if self.new_target[0] != None:
-            # print("sending target")
-            p = Point()
-            p.x = float(self.new_target[0])
-            p.y = float(self.new_target[1])
-            p.z = self.no_change
+            p = Twist()
+            p.linear.x = float(self.new_target[0]) # Current target position in image
+            p.linear.y = float(self.new_target[1]) # Current target position in image
+            p.linear.z = self.no_change            # Tell if target was succesfully tracked
+            
+            p.angular.x = float(0) # Send the current size of the bounding box
+            p.angular.y = float(0) # Send the current size of the bounding box
+            p.angular.z = 0 # Tell if bb is used
 
             self.target_pub.publish(p)
-        if self.distance_to_wall != None and self.no_change:
-            self.distance_error_pub.publish(self.distance_error)
+        
+            # If distance errors are calculateable and tracking is succesfull publish
+            if self.distance_to_wall != None and self.no_change:
+                self.distance_error_pub.publish(self.distance_error)
+
+    # def publish_new_target(self):
+    #     if self.new_target[0] != None:
+    #         # print("sending target")
+    #         p = Point()
+    #         p.x = float(self.new_target[0])
+    #         p.y = float(self.new_target[1])
+    #         p.z = self.no_change
+
+    #         self.target_pub.publish(p)
+    #     if self.distance_to_wall != None and self.no_change:
+    #         self.distance_error_pub.publish(self.distance_error)
 
     def update_distance(self, data):
         self.distance_to_wall = data.linear.x
