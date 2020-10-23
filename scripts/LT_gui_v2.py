@@ -148,6 +148,7 @@ class DroneGUI:
 
     def image_subscriber_callback(self, image):
         cv_image = CvBridge().imgmsg_to_cv2(image, "rgb8")
+        cv2.circle(cv_image, (640, 360), 1, (255,0,0), 10)
         if self.circle_center[0] != None:
             cv2.circle(cv_image, (int(self.circle_center[0]), int(self.circle_center[1])), 3, self.circ_color, 10)
             if self.bb_data[0] != None:
@@ -168,7 +169,7 @@ class DroneGUI:
 
     def update_image(self):
         ## Updating the image from the 'drone_cam_sub.py', if it's new. The update is automatic with a frequency 20 Hz (50 ms)
-        frequency = 20
+        frequency = 30.0
         try:
             if self.img != self.prev_img: 
                 self.imgtk = ImageTk.PhotoImage(self.img)

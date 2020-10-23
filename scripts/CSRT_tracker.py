@@ -7,17 +7,24 @@ import cv2 as cv2
 # ROS related imports
 import rospy
 from geometry_msgs.msg import Point, Twist
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
 
 # Define middle and focals
 C_MID = (640, 360)
-FOCAL_LENGTH = (1068.0, 1072.0)
+FOCAL_LENGTH = [1068.0, 1072.0]
+
 
 # Define the target tracker class
 class Target_tracker():
     def __init__(self):
         
+        cam_info = rospy.wait_for_message('/usb_cam/camera_info', CameraInfo)
+        FOCAL_LENGTH[0] = cam_info.K[0]
+        FOCAL_LENGTH[1] = cam_info.K[4]
+        print(FOCAL_LENGTH)
+        self.hoz_fov = np.arctan(C_MID[0] / FOCAL_LENGTH[0])
+
         # For converting to openCV
         self.bridge = CvBridge()
 
@@ -82,11 +89,17 @@ class Target_tracker():
     def calculateError(self):
         if self.distance_to_wall != None and self.new_target[0] != None:
             self.distance_error.x = self.distance_to_wall
-            y_offset = (C_MID[0]) * np.sin(self.wall_angle)
-            self.distance_error.y = -((self.new_target[0]-y_offset) - C_MID[0])/FOCAL_LENGTH[0] * self.distance_to_wall
-            self.distance_error.z = -(self.new_target[1] - C_MID[1])/FOCAL_LENGTH[1] * self.distance_to_wall
+            # y_offset = (C_MID[0]) * np.sin(self.wall_angle)
+            # self.distance_error.y = -((self.new_target[0]-y_offset) - C_MID[0])/FOCAL_LENGTH[0] * self.distance_to_wall
+            # self.distance_error.z = -(self.new_target[1] - C_MID[1])/FOCAL_LENGTH[1] * self.distance_to_wall
             # print("{} {}".format(self.new_target[0], self.new_target[1]))
             # print("{} {}".format(self.distance_error.y, self.distance_error.z))
+            theta = self.wall_angle - (self.hoz_fov) * float(self.new_target[0] - C_MID[0])/float(C_MID[0])
+
+            self.distance_error.y = self.distance_to_wall * np.sin(theta) # - self.distance_to_wall * np.sin(self.wall_angle)
+            self.distance_error.z = -(self.new_target[1] - C_MID[1])/FOCAL_LENGTH[1] * self.distance_to_wall
+
+            #print(theta * 180.0/np.pi)
 
     # Publish the target for the GUI to read for visualization
     def publishTarget(self):
