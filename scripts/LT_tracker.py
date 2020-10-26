@@ -36,6 +36,8 @@ class Target_tracker():
 
         self.first_flag = True
 
+        self.hoz_fov = np.arctan(C_MID[0] / self.focal_length_x)
+
         # for csv
         self.matches_array = []
         self.matches_used_array = [] 
@@ -148,9 +150,14 @@ class Target_tracker():
 
     def calculate_error(self):
         if self.distance_to_wall != None and self.new_target[0] != None:
-            self.distance_error.x = self.distance_to_wall
-            y_offset = (C_MID[0]) * np.sin(self.wall_angle)
-            self.distance_error.y = -((self.new_target[0]-y_offset) - C_MID[0])/self.focal_length_x * self.distance_to_wall
+            #self.distance_error.x = self.distance_to_wall
+            #y_offset = (C_MID[0]) * np.sin(self.wall_angle)
+            #self.distance_error.y = -((self.new_target[0]-y_offset) - C_MID[0])/self.focal_length_x * self.distance_to_wall
+            #self.distance_error.z = -(self.new_target[1] - C_MID[1])/self.focal_length_y * self.distance_to_wall
+
+            theta = self.wall_angle - (self.hoz_fov) * float(self.new_target[0] - C_MID[0])/float(C_MID[0])
+
+            self.distance_error.y = self.distance_to_wall * np.sin(theta) # - self.distance_to_wall * np.sin(self.wall_angle)
             self.distance_error.z = -(self.new_target[1] - C_MID[1])/self.focal_length_y * self.distance_to_wall
 
     # Publish the target for the GUI to read for visualization
